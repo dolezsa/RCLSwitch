@@ -30,8 +30,8 @@ THE SOFTWARE.
 #include "Arduino.h"
 
 // Definitions for the tiny DIP switch to set channel and button trigger
-#define RCL_DIP(a, b, c, d, e) (((a) & 0x01 << 4) | ((b) & 0x01 << 3) \
-| ((c) & 0x01 << 2) | ((d) & 0x01 << 1) | ((e) & 0x01 << 0))
+#define RCL_DIP(a, b, c, d, e) (((a & 1) << 4) | ((b & 1) << 3) \
+| ((c & 1) << 2) | ((d & 1) << 1) | (e & 1))
 
 #define RCL_CHANNEL_1 (1 << 4)
 #define RCL_CHANNEL_2 (1 << 3)
@@ -65,16 +65,32 @@ public:
 
 	inline void write(const uint8_t channel, const uint8_t button, const bool state){
 		// Transforms simple input into the other function overload
-		uint16_t code = (channel << 7) | ((button & 0x1F) << 2) | (state + 1);
+		uint16_t code = (channel << 7) | ((button & 0x1F) << 2) | (!state + 1);
 		write(code);
 	}
 
 	inline void write(const uint16_t code){
 		// Repeat sending
-		for (uint8_t nRepeat = 0; nRepeat < 5; nRepeat++) {
+		for (uint8_t nRepeat = 0; nRepeat < 15; nRepeat++) {
 
-			// Check every input bit
-			for (uint8_t i = 0; i < 12; i++) {
+			for (uint8_t i = 0; i < 5; i++) {
+
+				// Always send Tri-State'0' first
+
+				// Send Tri-State'0'
+				if ((code >> (11 - i) & 1) == 1) {
+					transmit(3, 1);
+					transmit(3, 1);
+				}
+
+				// Send Tri-State'F'
+				else {
+					transmit(1, 3);
+					transmit(3, 1);
+				}
+			}
+
+			for (uint8_t i = 5; i < 12; i++) {
 
 				// Always send Tri-State'0' first
 				transmit(1, 3);
@@ -87,6 +103,7 @@ public:
 				else
 					transmit(3, 1);
 			}
+
 			// Send Sync
 			transmit(1, 31);
 		}
