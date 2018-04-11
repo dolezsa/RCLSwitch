@@ -75,8 +75,6 @@ public:
 
 			for (uint8_t i = 0; i < 5; i++) {
 
-				// Always send Tri-State'0' first
-
 				// Send Tri-State'0'
 				if ((code >> (11 - i) & 1) == 1) {
 					transmit(3, 1);
